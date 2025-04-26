@@ -14,35 +14,27 @@ class MasterProdukController extends Controller
     {
         $menu = 'kelola_produk';
         
-        // Query dasar
         $query = MasterProduk::query()->orderBy('id', 'desc');
 
-        // Jika ada parameter pencarian
         if ($request->filled('cari')) {
             $searchTerm = '%' . $request->cari . '%';
             
             $query->where(function($q) use ($searchTerm, $request) {
-                // Pencarian berdasarkan nama produk
                 $q->where('produk', 'like', $searchTerm);
                 
-                // Pencarian berdasarkan stok
                 if (is_numeric($request->cari)) {
                     $q->orWhere('stok', '=', (int)$request->cari);
                 }
                 
-                // Pencarian berdasarkan harga (exact match)
                 if (is_numeric($request->cari)) {
                     $q->orWhere('harga', '=', (float)$request->cari);
                 }
                           
-                // Pencarian berdasarkan ID produk
                 if (is_numeric($request->cari)) {
                     $q->orWhere('id', '=', (int)$request->cari);
                 }
             });
         }
-
-        // Menambahkan pagination dengan parameter query string
         $produk = $query->paginate(10)->appends($request->query());
 
         return view('admin.produk.index', compact('produk', 'menu'));

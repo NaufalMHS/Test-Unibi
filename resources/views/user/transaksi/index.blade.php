@@ -61,20 +61,36 @@
                                     @endforeach
                                 </ul>
                             </td>
-                            @if(auth()->user()->hasRole('user'))
                             <td>
-                                <a href="{{ route('user.transaksi.show', $trx->id) }}" class="btn btn-sm btn-primary">
-                                    <i class="bx bx-show"></i> Detail
-                                </a>
+                                @if(auth()->user()->hasRole('user'))
+                                    <a href="{{ route('user.transaksi.show', $trx->id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bx bx-show"></i> Detail
+                                    </a>
+                                    <form action="{{ route('user.transaksi.destroy', $trx->id) }}" method="POST" class="d-inline"
+                                        onsubmit="return confirm('Yakin ingin menghapus transaksi ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="bx bx-trash"></i> Hapus
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if(auth()->user()->hasRole('admin'))
+                                    <a href="{{ route('admin.transaksi.show', $trx->id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bx bx-show"></i> Detail
+                                    </a>
+                                    <form action="{{ route('admin.transaksi.destroy', $trx->id) }}" method="POST" class="d-inline"
+                                        onsubmit="return confirm('Yakin ingin menghapus transaksi ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="bx bx-trash"></i> Hapus
+                                        </button>
+                                    </form>
+                                @endif
                             </td>
-                            @endif
-                            @if(auth()->user()->hasRole('admin'))
-                            <td>
-                                <a href="{{ route('admin.transaksi.show', $trx->id) }}" class="btn btn-sm btn-primary">
-                                    <i class="bx bx-show"></i> Detail
-                                </a>
-                            </td>
-                            @endif
+
                         </tr>
                     @endforeach
 

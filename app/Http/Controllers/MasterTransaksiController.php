@@ -19,30 +19,24 @@ class MasterTransaksiController extends Controller
     {
         $menu = 'detail_transaksi';
         
-        // Query dasar dengan eager loading
         $query = MasterTransaksi::with(['detailTransaksi.produk', 'user'])
             ->where('user_id', Auth::id())
             ->orderBy('id', 'desc');
 
-        // Pencarian transaksi
         if ($request->has('cari') && !empty($request->cari)) {
             $searchTerm = '%' . $request->cari . '%';
             
             $query->where(function($q) use ($searchTerm, $request) {
-                // Cari berdasarkan kode transaksi
                 $q->where('kode_transaksi', 'like', $searchTerm);
                 
-                // Cari berdasarkan nama user
                 $q->orWhereHas('user', function($q) use ($searchTerm) {
                     $q->where('name', 'like', $searchTerm);
                 });
                 
-                // Cari berdasarkan nama produk
                 $q->orWhereHas('detailTransaksi.produk', function($q) use ($searchTerm) {
                     $q->where('produk', 'like', $searchTerm);
                 });
                 
-                // Cari berdasarkan tanggal (format d-m-Y atau Y-m-d)
                 try {
                     $date = \Carbon\Carbon::createFromFormat('d-m-Y', $request->cari);
                     $q->orWhereDate('tanggal', $date->format('Y-m-d'));
@@ -51,16 +45,13 @@ class MasterTransaksiController extends Controller
                         $date = \Carbon\Carbon::createFromFormat('Y-m-d', $request->cari);
                         $q->orWhereDate('tanggal', $date->format('Y-m-d'));
                     } catch (\Exception $e) {
-                        // Jika format tanggal tidak valid, abaikan
                     }
                 }
             });
         }
 
-        // Pagination dengan transformasi data
         $transaksi = $query->paginate(10)
             ->through(function ($trx) {
-                // Hitung total bayar untuk setiap transaksi
                 $trx->total_bayar = $trx->detailTransaksi->sum(function($detail) {
                     return $detail->quantity * $detail->produk->harga;
                 });
@@ -72,9 +63,10 @@ class MasterTransaksiController extends Controller
 
     public function indexAdmin(Request $request)
     {
-        $menu = 'transaksi';
+        $menu = 'detail_transaksi';
         
-        $query = MasterTransaksi::with(['detailTransaksi.produk', 'user'])
+        $query = MasterTransaksi::with(['detailTransaksi.produk'])
+           
             ->orderBy('id', 'desc');
 
         if ($request->has('cari') && !empty($request->cari)) {
@@ -88,8 +80,9 @@ class MasterTransaksiController extends Controller
                 });
                 
                 $q->orWhereHas('detailTransaksi.produk', function($q) use ($searchTerm) {
-                    $q->where('produk', 'like', $searchTerm);       
+                    $q->where('produk', 'like', $searchTerm);
                 });
+                
                 try {
                     $date = \Carbon\Carbon::createFromFormat('d-m-Y', $request->cari);
                     $q->orWhereDate('tanggal', $date->format('Y-m-d'));
@@ -100,13 +93,17 @@ class MasterTransaksiController extends Controller
                     } catch (\Exception $e) {
                     }
                 }
-                if (is_numeric($request->cari)) {
-                    $q->orWhere('id', '=', (int)$request->cari);
-                }
             });
         }
-        // Menambahkan pagination dengan parameter query string
-        $transaksi = $query->paginate(10)->appends($request->query());
+
+        $transaksi = $query->paginate(10)
+            ->through(function ($trx) {
+                $trx->total_bayar = $trx->detailTransaksi->sum(function($detail) {
+                    return $detail->quantity * $detail->produk->harga;
+                });
+                return $trx;
+            });
+
         return view('user.transaksi.index', compact('transaksi', 'menu'));
     }
 
@@ -133,7 +130,7 @@ class MasterTransaksiController extends Controller
 
         DB::transaction(function () use ($request) {
             $transaksi = MasterTransaksi::create([
-                'kode_transaksi' => '', // sementara kosong, nanti update setelah save
+                'kode_transaksi' => '', 
                 'tanggal' => now(),
             ]);
 
@@ -165,10 +162,8 @@ class MasterTransaksiController extends Controller
      */
     public function show($id)
     {
-        // Ambil data transaksi beserta relasinya
         $transaksi = MasterTransaksi::with(['detailTransaksi.produk'])->findOrFail($id);
         
-        // Hitung total dari detail transaksi
         $total = 0;
         foreach ($transaksi->detailTransaksi as $detail) {
             $total += $detail->quantity * $detail->produk->harga;
@@ -198,8 +193,16 @@ class MasterTransaksiController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        $transaksi = MasterTransaksi::with('detailTransaksi')->findOrFail($id);
+    
+       
+        foreach ($transaksi->detailTransaksi as $detail) {
+            $detail->delete();
+        }
+        $transaksi->delete();
+    
+        return redirect()->back()->with('success', 'Transaksi berhasil dihapus.');
     }
 }

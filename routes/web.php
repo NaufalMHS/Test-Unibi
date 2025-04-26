@@ -29,7 +29,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')
     ->name('admin.')->group(function () {
         Route::resource('produk', MasterProdukController::class);
         Route::get(('transaksi'), [MasterTransaksiController::class, 'indexAdmin'])->name('transaksi.index');
-        Route::resource('transaksi', MasterTransaksiController::class)->only(['show']);
+        Route::resource('transaksi', MasterTransaksiController::class)->only(['show', 'destroy']);
     });
 
 // USER ROUTE
@@ -38,5 +38,5 @@ Route::middleware(['auth', 'role:user'])->prefix('user')->as('user.')->group(fun
     Route::get('checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 
-    Route::resource('transaksi', MasterTransaksiController::class)->only(['index', 'show']);
+    Route::resource('transaksi', MasterTransaksiController::class)->only(['index', 'show', 'destroy']);
 });   
